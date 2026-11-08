@@ -1,0 +1,46 @@
+{
+  "realm": "fhir",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 60,
+  "clientScopes": [
+    {
+      "name": "system-Observation.rs",
+      "description": "SMART v2 scope: system/Observation.rs (Keycloak does not allow / in scope names)",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "system-Patient.rs",
+      "description": "SMART v2 scope: system/Patient.rs",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "fhir-agent",
+      "secret": "demo-secret-not-for-production",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [],
+      "defaultClientScopes": [],
+      "optionalClientScopes": [
+        "system-Observation.rs",
+        "system-Patient.rs"
+      ]
+    }
+  ]
+}

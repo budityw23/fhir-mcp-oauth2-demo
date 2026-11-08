@@ -1,0 +1,56 @@
+# Article demo stack: Keycloak + HAPI FHIR + scope-checking gateway.
+# From this directory:
+#   KEYCLOAK_ADMIN=admin KEYCLOAK_ADMIN_PASSWORD=admin docker compose up -d
+#   python seed.py        # load synthetic data (wait ~30s for HAPI to start)
+#   python demo.py        # run the three demo cases
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
+      KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin}"
+      KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME: "http://localhost:8085"
+    ports:
+      - "127.0.0.1:8085:8080"
+    volumes:
+      - ./realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -ec
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000;
+          printf 'GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3;
+          IFS= read -r status <&3;
+          [[ "$$status" == *" 200 "* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  hapi:
+    image: hapiproject/hapi:v7.6.0
+    environment:
+      SERVER_PORT: "8084"
+    ports:
+      - "127.0.0.1:8084:8084"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    ports:
+      - "127.0.0.1:8083:8083"
+    environment:
+      HAPI_BASE: "http://hapi:8084"
+      KEYCLOAK_JWKS: "http://keycloak:8080/realms/fhir/protocol/openid-connect/certs"
+      TOKEN_ISSUER: "http://localhost:8085/realms/fhir"
+      GATEWAY_PORT: "8083"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      hapi:
+        condition: service_started
